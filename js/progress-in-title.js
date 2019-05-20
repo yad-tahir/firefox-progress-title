@@ -1,35 +1,29 @@
 (function() {
 	'use strict';
 
-	var docTitle = document.title;
-	var appTitle = docTitle
+	var docTitle = ""
+	var appTitle = ""
 	var lastProgress = 0;
 	var nodeLoaded = 0;
 	var nodeInserted = 0;
-	var lastTime = 0;
-	
+
 	const listenerConfig = {"once": true, "capture": true, "passive": true};
 
 	function updateTitle(node, progress){
-		const time = Date.now();
-		if (time > lastTime + 100){
-			if(typeof progress === "undefined"){
-				progress = 100 - (nodeInserted - nodeLoaded) * 100 / nodeInserted;
-			}
+		if(typeof progress === "undefined"){
+			progress = nodeLoaded * 100 / nodeInserted;
+		}
 
+		if (progress >= 0){
 			if (progress > 100){
 				progress = 100;
 			}
-			if (progress >= 0){
-				lastProgress = progress;
-				lastTime = time;
 
-				if(appTitle != "" && appTitle != docTitle){
-					docTitle = appTitle.concat(" - ", Math.round(progress), "%");
-					document.title = docTitle;
-				}
+			if(appTitle != "" && appTitle != docTitle){
+				lastProgress = progress;
+				docTitle = appTitle.concat(" - ", Math.round(progress), "%");
+				document.title = docTitle;
 			}
-			
 		}
 	}
 
@@ -58,9 +52,9 @@
 	}
 
 	function onUnloadHandler(node){
-		nodeInserted=10;
-		nodeLoaded=10;
-		updateTitle(node);
+		nodeInserted=20;
+		nodeLoaded=20;
+		updateTitle(node,100);
 	}
 
 	function onLoadHandler(node){
@@ -78,27 +72,32 @@
 
 				if (node.nodeName == "TITLE"){
 
-					if (document.title != docTitle){
-						appTitle = document.title;
+					if (node.text != docTitle){
+						appTitle = node.text;
 					}
 					updateTitle(node);
 
 					var titleObserver =
 						new MutationObserver((m) => {
 							// If it is not our update
-							if (document.title != docTitle){
-								appTitle = document.title;
+							var newTitle = m[0].addedNodes[0].textContent
+							// If the last char of the new title is '%'. This means
+							// this update is coming from our script. Thus, ignore it.
+							if (newTitle != docTitle && newTitle.slice(-1) != "%"){
+								appTitle = newTitle;
+								updateTitle(m);
+								setTimeout((m) => {
+									nodeLoaded = nodeInserted;
+									updateTitle(m);
+								}, 2000);
 							}
-							updateTitle(m);
 						});
-					titleObserver.observe (node, {childList: true,
-												  attributes: true,
-												  subtree: true});
+					titleObserver.observe (node , {childList: true,
+												   attributes: true});
 				} else if (node.nodeName == "BODY") {
 					nodeInserted++;
 					updateTitle(node);
-					node.addEventListener( "load",
-										   () => onLoadHandler(node),
+					node.addEventListener( "load", () => onLoadHandler(node),
 										   listenerConfig);
 				} else if (((node.nodeName == "IMG" ||
 							 node.nodeName == "SCRIPT" ||
@@ -109,34 +108,25 @@
 							window.matchMedia(node.media))) {
 					nodeInserted++;
 					updateTitle(node);
-					node.addEventListener("load",
-										  () => onLoadHandler(node),
+					node.addEventListener("load", () => onLoadHandler(node),
 										  listenerConfig);
-					node.addEventListener("error",
-										  () => onErrorHandler(node),
+					node.addEventListener("error", () => onErrorHandler(node),
 										  listenerConfig);
-					node.addEventListener("abort",
-										  () => onErrorHandler(node),
+					node.addEventListener("abort", () => onErrorHandler(node),
 										  listenerConfig);
 				} else if (node.nodeName == "VIDEO" ||
 						   node.nodeName == "AUDIO"){
-					
 					nodeInserted++;
 					updateTitle(node);
-					node.addEventListener("load",
-										  () => onLoadHandler(node),
+					node.addEventListener("load", () => onLoadHandler(node),
 										  listenerConfig);
-					node.addEventListener("abort",
-										  () => onUnloadHandler(node),
+					node.addEventListener("abort", () => onUnloadHandler(node),
 										  listenerConfig);
-					node.addEventListener("error",
-										  () => onUnloadHandler(node),
+					node.addEventListener("error", () => onUnloadHandler(node),
 										  listenerConfig);
-					node.addEventListener("timeupdate",
-										  () => onTimeUpdateHandler(node),
+					node.addEventListener("timeupdate", () => onTimeUpdateHandler(node),
 										  {"passive": true});
 				}
-
 			});
 		});
 	});
@@ -145,14 +135,7 @@
 	updateTitle(window);
 
 	observer.observe(document, {childList: true, subtree: true});
-	window.addEventListener( "load", (window) => {
-		onLoadHandler(window);
-
-		setTimeout((node) => {
-			nodeLoaded = nodeInserted;
-			updateTitle(node);
-		}, 2000);
-
-	}, listenerConfig);
+	window.addEventListener( "load",
+							 (window) => onLoadHandler(window), listenerConfig);
 })();
 
