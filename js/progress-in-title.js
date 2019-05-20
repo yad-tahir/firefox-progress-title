@@ -21,7 +21,7 @@
 
 			if(appTitle != "" && appTitle != docTitle){
 				lastProgress = progress;
-				docTitle = appTitle.concat(" - ", Math.round(progress), "%");
+				docTitle = appTitle.concat(" - ", Math.ceil(progress), "%");
 				document.title = docTitle;
 			}
 		}
@@ -66,6 +66,13 @@
 		onLoadHandler(node);
 	}
 
+	function setTimeoutTimer(node){
+		setTimeout((node) => {
+			nodeLoaded = nodeInserted;
+			updateTitle(node);
+		}, 5000);
+	}
+
 	let observer = new MutationObserver((mutations) => {
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
@@ -86,14 +93,12 @@
 							if (newTitle != docTitle && newTitle.slice(-1) != "%"){
 								appTitle = newTitle;
 								updateTitle(m);
-								setTimeout((m) => {
-									nodeLoaded = nodeInserted;
-									updateTitle(m);
-								}, 2000);
+								setTimeoutTimer(m);
 							}
 						});
 					titleObserver.observe (node , {childList: true,
 												   attributes: true});
+					setTimeoutTimer(node);
 				} else if (node.nodeName == "BODY") {
 					nodeInserted++;
 					updateTitle(node);
