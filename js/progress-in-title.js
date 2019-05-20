@@ -6,6 +6,7 @@
 	var lastProgress = 0;
 	var nodeLoaded = 0;
 	var nodeInserted = 0;
+	var mediaMode = false;
 
 	const listenerConfig = {"once": true, "capture": true, "passive": true};
 
@@ -19,7 +20,10 @@
 				progress = 100;
 			}
 
-			if(appTitle != "" && appTitle != docTitle){
+			if(appTitle != "" &&
+			   appTitle != docTitle &&
+			   (!mediaMode || (node.nodeName == "VIDEO" ||
+							   node.nodeName == "VOICE"))){
 				lastProgress = progress;
 				docTitle = appTitle.concat(" - ", Math.ceil(progress), "%");
 				document.title = docTitle;
@@ -28,12 +32,18 @@
 	}
 
 	function onTimeUpdateHandler(node){
+		if(!mediaMode)
+			mediaMode = true;
+
 		nodeInserted = node.duration;
 		nodeLoaded = node.currentTime;
 		updateTitle(node);
 	}
 
 	function onProgressHandler(node){
+		if(!mediaMode)
+			mediaMode = true;
+
 		var current = node.currentTime;
 		var duration = node.duration;
 		var buffered = node.buffered;
@@ -45,13 +55,13 @@
 				max=e;
 			}
 		}
-
 		nodeInserted = duration;
 		nodeLoaded = max;
 		updateTitle(node);
 	}
 
 	function onUnloadHandler(node){
+		mediaMode = false;
 		nodeInserted=20;
 		nodeLoaded=20;
 		updateTitle(node,100);
@@ -67,7 +77,7 @@
 	}
 
 	function setTimeoutTimer(node){
-		setTimeout((node) => {
+		setTimeout(function(){
 			nodeLoaded = nodeInserted;
 			updateTitle(node);
 		}, 5000);
@@ -87,13 +97,14 @@
 					var titleObserver =
 						new MutationObserver((m) => {
 							// If it is not our update
-							var newTitle = m[0].addedNodes[0].textContent
+							var n = m[0].addedNodes[0];
 							// If the last char of the new title is '%'. This means
 							// this update is coming from our script. Thus, ignore it.
-							if (newTitle != docTitle && newTitle.slice(-1) != "%"){
-								appTitle = newTitle;
-								updateTitle(m);
-								setTimeoutTimer(m);
+							if (n.textContent != docTitle &&
+								n.textContent.slice(-1) != "%"){
+								appTitle = n.textContent;
+								updateTitle(n);
+								setTimeoutTimer(n);
 							}
 						});
 					titleObserver.observe (node , {childList: true,
