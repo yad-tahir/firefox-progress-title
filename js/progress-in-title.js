@@ -42,7 +42,7 @@
 			   (!mediaMode || (node.nodeName == "VIDEO" ||
 							   node.nodeName == "VOICE"))){
 				lastProgress = progress;
-				docTitle = appTitle.concat(" - ", Math.ceil(progress), "%");
+				docTitle = appTitle.concat(" ", Math.ceil(progress), "%");
 				document.title = docTitle;
 			}
 		}
@@ -171,4 +171,3 @@
 	window.addEventListener( "load",
 							 (window) => onLoadHandler(window), listenerConfig);
 })();
-
