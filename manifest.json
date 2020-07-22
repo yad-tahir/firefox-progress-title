@@ -6,11 +6,11 @@
   "homepage_url": "https://github.com/yad-tahir/firefox-progress-title",
 
   "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/progress-in-title.js"],
-      "run_at": "document_start"
-    }
+	{
+	  "matches": ["http://*/*", "https://*/*"],
+	  "js": ["js/progress-in-title.js"],
+	  "run_at": "document_start"
+	}
   ],
 
   "permissions": null
