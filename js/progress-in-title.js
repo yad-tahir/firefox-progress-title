@@ -20,65 +20,62 @@
 
 	var docTitle = ""
 	var appTitle = ""
-	var lastProgress = 0;
 	var nodeLoaded = 0;
-	var nodeInserted = 0;
-	var mediaMode = false;
+	var nodeInserted = 1; // to avoid dividing by zero
+	var loadingMode = true;
+	var firstScroll = true;
 
 	const listenerConfig = {"once": true, "capture": true, "passive": true};
 
-	function updateTitle(node, progress){
-		if(typeof progress === "undefined"){
-			progress = nodeLoaded * 100 / nodeInserted;
-		}
-
+	function updateTitle(node, progress, force){
 		if (progress >= 0){
-			if (progress > 100){
+			if (progress > 100)
 				progress = 100;
-			}
 
 			if(appTitle != "" &&
 			   appTitle != docTitle &&
-			   (!mediaMode || (node.nodeName == "VIDEO" ||
-							   node.nodeName == "VOICE"))){
-				lastProgress = progress;
+			   (loadingMode || force)){
 				docTitle = appTitle.concat(" ", Math.ceil(progress), "%");
 				document.title = docTitle;
 			}
 		}
 	}
 
-	function onTimeUpdateHandler(node){
-		if(!mediaMode)
-			mediaMode = true;
+	function onMediaUpdateHandler(node){
+		var x = node.offsetLeft,
+			y = node.offsetTop,
+			w = node.offsetWidth,
+			h = node.offsetHeight,
+			r = x + w, //right
+			b = y + h, //bottom
+			visibleX, visibleY, visible;
 
-		nodeInserted = node.duration;
-		nodeLoaded = node.currentTime;
-		updateTitle(node);
+		visibleX = Math.max(0, Math.min(w, window.pageXOffset + window.innerWidth - x, r - window.pageXOffset));
+		visibleY = Math.max(0, Math.min(h, window.pageYOffset + window.innerHeight - y, b - window.pageYOffset));
+		visible = visibleX * visibleY / (w * h);
+
+		if(loadingMode)
+			loadingMode = false;
+
+		// Update the title when the visibility at least is 10%
+		if(visible > 0.1)
+			updateTitle(node, node.currentTime * 100 / node.duration, true);
 	}
 
-	function onProgressHandler(node){
-		if(!mediaMode)
-			mediaMode = true;
-
-		var current = node.currentTime;
-		var duration = node.duration;
-		var buffered = node.buffered;
-		var max = 0;
-		for (var i = 0; i < buffered.length; i++) {
-			var e = buffered.end(i);
-			var s = buffered.start(i);
-			if(current >= s && current <= e){
-				max=e;
-			}
+	function onScrollHandler(node){
+		var p = node.scrollY * 100 / node.scrollMaxY;
+		// Ignore the very first scroll as it is triggered automatically without
+		// the user actually scrolls the window
+		if(firstScroll){
+			firstScroll = false;
+		}else{
+			if(loadingMode)
+				loadingMode = false;
 		}
-		nodeInserted = duration;
-		nodeLoaded = max;
-		updateTitle(node);
+		updateTitle(node, p, true);
 	}
 
 	function onUnloadHandler(node){
-		mediaMode = false;
 		nodeInserted=20;
 		nodeLoaded=20;
 		updateTitle(node,100);
@@ -86,30 +83,28 @@
 
 	function onLoadHandler(node){
 		nodeLoaded++;
-		updateTitle(node);
+		updateTitle(node, nodeLoaded * 100 / nodeInserted);
 	}
 
 	function onErrorHandler(node){
-		onLoadHandler(node);
+		onLoadHandler(node, nodeLoaded * 100 / nodeInserted);
 	}
 
 	function setTimeoutTimer(node){
 		setTimeout(function(){
 			nodeLoaded = nodeInserted;
-			updateTitle(node);
+			updateTitle(node, 100);
 		}, 5000);
 	}
 
 	let observer = new MutationObserver((mutations) => {
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
-
 				if (node.nodeName == "TITLE"){
-
 					if (node.text != docTitle){
 						appTitle = node.text;
 					}
-					updateTitle(node);
+					updateTitle(node, nodeLoaded * 100 / nodeInserted, true);
 
 					var titleObserver =
 						new MutationObserver((m) => {
@@ -120,16 +115,14 @@
 							if (n.textContent != docTitle &&
 								n.textContent.slice(-1) != "%"){
 								appTitle = n.textContent;
-								updateTitle(n);
-								setTimeoutTimer(n);
+								updateTitle(n, nodeLoaded * 100 / nodeInserted, true);
 							}
 						});
 					titleObserver.observe (node , {childList: true,
 												   attributes: true});
-					setTimeoutTimer(node);
-				} else if (node.nodeName == "BODY") {
+				} else if (node.nodeName == "BODY"){
 					nodeInserted++;
-					updateTitle(node);
+					updateTitle(node, nodeLoaded * 100 / nodeInserted);
 					node.addEventListener( "load", () => onLoadHandler(node),
 										   listenerConfig);
 				} else if (((node.nodeName == "IMG" ||
@@ -150,24 +143,24 @@
 				} else if (node.nodeName == "VIDEO" ||
 						   node.nodeName == "AUDIO"){
 					nodeInserted++;
-					updateTitle(node);
+					updateTitle(node, nodeLoaded * 100 / nodeInserted);
 					node.addEventListener("load", () => onLoadHandler(node),
 										  listenerConfig);
 					node.addEventListener("abort", () => onUnloadHandler(node),
 										  listenerConfig);
 					node.addEventListener("error", () => onUnloadHandler(node),
 										  listenerConfig);
-					node.addEventListener("timeupdate", () => onTimeUpdateHandler(node),
+					node.addEventListener("timeupdate", () => onMediaUpdateHandler(node),
 										  {"passive": true});
 				}
 			});
 		});
 	});
 
-	nodeInserted++;
-	updateTitle(window);
-
+	updateTitle(window, nodeLoaded * 100 / nodeInserted);
 	observer.observe(document, {childList: true, subtree: true});
 	window.addEventListener( "load",
-							 (window) => onLoadHandler(window), listenerConfig);
+							 () => onLoadHandler(window), listenerConfig);
+	window.addEventListener("scroll",
+							() => onScrollHandler(window));
 })();
