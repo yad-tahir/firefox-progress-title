@@ -92,9 +92,9 @@
 
 	function setTimeoutTimer(node){
 		setTimeout(function(){
-			nodeLoaded = nodeInserted;
 			updateTitle(node, 100);
-		}, 5000);
+			loadingMode = false;
+		}, 20000);
 	}
 
 	let observer = new MutationObserver((mutations) => {
@@ -120,6 +120,7 @@
 						});
 					titleObserver.observe (node , {childList: true,
 												   attributes: true});
+					setTimeoutTimer(node);
 				} else if (node.nodeName == "BODY"){
 					nodeInserted++;
 					updateTitle(node, nodeLoaded * 100 / nodeInserted);
