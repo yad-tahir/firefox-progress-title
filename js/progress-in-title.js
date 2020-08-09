@@ -94,7 +94,7 @@
 		setTimeout(function(){
 			updateTitle(node, 100);
 			loadingMode = false;
-		}, 20000);
+		}, 10000);
 	}
 
 	let observer = new MutationObserver((mutations) => {
