@@ -29,12 +29,10 @@
 
 	function updateTitle(node, progress, force){
 		if (progress >= 0){
-			if (progress > 100)
-				progress = 100;
 
-			if(appTitle != "" &&
-			   appTitle != docTitle &&
-			   (loadingMode || force)){
+			if (progress > 100) progress = 100;
+
+			if(appTitle != "" && appTitle != docTitle && (loadingMode || force)){
 				docTitle = appTitle.concat(" ", Math.ceil(progress), "%");
 				document.title = docTitle;
 			}
@@ -160,8 +158,6 @@
 
 	updateTitle(window, nodeLoaded * 100 / nodeInserted);
 	observer.observe(document, {childList: true, subtree: true});
-	window.addEventListener( "load",
-							 () => onLoadHandler(window), listenerConfig);
-	window.addEventListener("scroll",
-							() => onScrollHandler(window));
+	window.addEventListener( "load", () => onLoadHandler(window), listenerConfig);
+	window.addEventListener("scroll",() => onScrollHandler(window));
 })();
