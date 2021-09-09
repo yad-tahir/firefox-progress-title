@@ -1,17 +1,15 @@
 {
   "manifest_version": 2,
-  "name": "firefox-progress-title",
+  "name": "progress-aware-title",
   "version": "1.0",
   "description": "Add progress-awareness to tab titles.",
   "homepage_url": "https://github.com/yad-tahir/firefox-progress-title",
 
   "content_scripts": [
-	{
-	  "matches": ["http://*/*", "https://*/*"],
-	  "js": ["js/progress-in-title.js"],
-	  "run_at": "document_start"
-	}
-  ],
-
-  "permissions": null
+  {
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["js/progress-in-title.js"],
+    "run_at": "document_start"
+  }
+  ]
 }
